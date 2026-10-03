@@ -24,7 +24,7 @@ export interface RequestTab {
   method: string;
   body: string;
   queryParams: Array<{checked: boolean; key: string; value: string }>;
-  requestHeaders: Array<{ key: string; value: string }>;
+  requestHeaders: Array<{ checked: boolean; key: string; value: string }>;
   response: string;
   headers: Record<string, string>;
   responseInfo: { status: number; statusText: string; size: number; time: number } | null;

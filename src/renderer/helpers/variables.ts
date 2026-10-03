@@ -7,7 +7,11 @@ import { Variable } from '../components/VariablesManager';
  * @param variables Array of variables to interpolate
  * @returns The text with variables replaced
  */
-export const interpolateVariables = (text: string, variables: Variable[]): string => {
+export const interpolateVariables = (text: string, variables: Variable[] | null | undefined): string => {
+  if (!text || !variables || variables.length === 0) {
+    return text;
+  }
+
   let result = text;
   // Create a map for faster lookup
   const varMap = new Map(variables.map(v => [v.key, v.value]));
@@ -48,12 +52,12 @@ export const isValidVariableName = (name: string): boolean => {
  * @returns Combined array of all available variables
  */
 export const getCombinedVariables = (
-  globalVariables: Variable[],
-  localVariables: Record<string, Variable[]>,
+  globalVariables: Variable[] | null | undefined,
+  localVariables: Record<string, Variable[]> | null | undefined,
   activeLocalEnv: string
 ): Variable[] => {
-  const combined = [...globalVariables];
-  if (activeLocalEnv && localVariables[activeLocalEnv]) {
+  const combined = globalVariables ? [...globalVariables] : [];
+  if (activeLocalEnv && localVariables && localVariables[activeLocalEnv]) {
     combined.push(...localVariables[activeLocalEnv]);
   }
   return combined;

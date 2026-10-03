@@ -96,7 +96,7 @@ export const handleSendRequest = async (
     // Build headers with interpolated variables
     const requestHeaders: Record<string, string> = {};
     currentTab.requestHeaders.forEach(header => {
-      if (header.key) {
+      if (header.key && header.checked) {
         const interpolatedKey = interpolateVariables(header.key, combined);
         const interpolatedValue = interpolateVariables(header.value, combined);
         requestHeaders[interpolatedKey] = interpolatedValue;

@@ -43,7 +43,11 @@ export const loadTabs = (): RequestTab[] => {
     const parsed = JSON.parse(stored);
     return parsed.map((tab: any) => ({
       ...tab,
-      requestHeaders: tab.requestHeaders || [],
+      requestHeaders: (tab.requestHeaders || []).map((h: any) => ({
+        checked: h.checked ?? true,
+        key: h.key,
+        value: h.value,
+      })),
       response: '',
       headers: {},
       responseInfo: null,

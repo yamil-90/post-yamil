@@ -21,8 +21,8 @@ export const HeadersManager = ({
     updateTab({ requestHeaders: currentTab.requestHeaders.filter((_, i) => i !== index) });
   };
 
-  const updateHeader = (index: number, field: 'key' | 'value', value: string) => {
-    const updated = [...currentTab.requestHeaders];
+  const updateHeader = (index: number, field: 'key' | 'value' | 'checked', value: string | boolean) => {
+    const updated: any[] = [...currentTab.requestHeaders];
     updated[index][field] = value;
     updateTab({ requestHeaders: updated });
   };
@@ -36,7 +36,7 @@ export const HeadersManager = ({
     if (e.key === 'Tab' && emptyHeaderKey.trim()) {
       e.preventDefault();
       const newIndex = currentTab.requestHeaders.length;
-      updateTab({ requestHeaders: [...currentTab.requestHeaders, { key: emptyHeaderKey, value: '' }] });
+      updateTab({ requestHeaders: [...currentTab.requestHeaders, { checked: true, key: emptyHeaderKey, value: '' }] });
       setEmptyHeaderKey('');
       // Focus the value field of the newly added header
       setTimeout(() => {
@@ -54,12 +54,19 @@ export const HeadersManager = ({
 
         <div className="headers-table">
           <div className="headers-row header-row">
+            <div className="headers-col">Check</div>
             <div className="headers-col">Key</div>
             <div className="headers-col">Value</div>
             <div className="headers-col action">Action</div>
           </div>
           {currentTab.requestHeaders.map((header, index) => (
             <div key={`header-${index}`} className="headers-row">
+              <input
+                type="checkbox"
+                className="headers-input-check"
+                onChange={(e) => updateHeader(index, 'checked', e.target.checked)}
+                checked={header.checked ?? true}
+              />
               <input
                 ref={(el) => {
                   if (el) keyInputRefs.current.set(index, el);
@@ -89,6 +96,11 @@ export const HeadersManager = ({
             </div>
           ))}
           <div key="empty-row" className="headers-row">
+            <input
+              type="checkbox"
+              className="headers-input-check"
+              disabled
+            />
             <input
               type="text"
               className="headers-input-name"

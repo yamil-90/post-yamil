@@ -7,16 +7,21 @@ body {
 }
 
 .container {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 20px;
+  width: 100%;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .header-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  padding: 20px;
+  border-bottom: 1px solid #ddd;
+  background-color: white;
 }
 
 .header-top h1 {
@@ -40,10 +45,11 @@ h1 {
 .request-tabs {
   display: flex;
   gap: 5px;
-  margin-bottom: 20px;
   border-bottom: 2px solid #ddd;
   padding: 0 20px;
   overflow-x: auto;
+  background-color: white;
+  border-radius: 0;
 }
 
 .request-tab {
@@ -123,9 +129,11 @@ h2 {
 .request-section {
   background: white;
   padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
+  border-radius: 0;
+  box-shadow: none;
+  margin-bottom: 0;
+  flex: 1;
+  overflow-y: auto;
 }
 
 .input-group {
@@ -285,11 +293,12 @@ select option[value="HEAD"] {
   border: 1px solid #ddd;
   border-radius: 4px;
   overflow: hidden;
+  display: grid;
 }
 
 .params-row {
-  display: flex;
-  grid-template-columns: 1fr 1fr 100px;
+  display: grid;
+  grid-template-columns: 40px 1fr 1fr 80px;
   gap: 0;
   border-bottom: 1px solid #eee;
   align-items: center;
@@ -297,6 +306,15 @@ select option[value="HEAD"] {
 
 .params-row:last-child {
   border-bottom: none;
+}
+
+.params-row.header-row {
+  background-color: #f9f9f9;
+  font-weight: 600;
+  color: #555;
+  font-size: 13px;
+  padding: 10px;
+  border-bottom: 2px solid #ddd;
 }
 
 .header-row {
@@ -343,6 +361,9 @@ select option[value="HEAD"] {
 
 .params-input-check {
   width: 20px;
+  height: 20px;
+  margin: 0 auto;
+  cursor: pointer;
 }
 
 .params-input-name:focus {
@@ -370,8 +391,8 @@ select option[value="HEAD"] {
 }
 
 .delete-btn {
-  margin: 0 10px;
-  padding: 6px 10px;
+  margin: 0 auto;
+  padding: 4px 8px;
   background-color: #dc3545;
   color: white;
   border: none;
@@ -379,6 +400,7 @@ select option[value="HEAD"] {
   font-size: 12px;
   cursor: pointer;
   transition: background-color 0.2s;
+  width: fit-content;
 }
 
 .delete-btn:hover {
@@ -418,8 +440,10 @@ button:disabled {
 .response-section {
   background: white;
   padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 0;
+  box-shadow: none;
+  flex: 1;
+  overflow-y: auto;
 }
 
 pre {
@@ -601,14 +625,16 @@ pre {
   border: 1px solid #ddd;
   border-radius: 4px;
   overflow: hidden;
+  display: grid;
 }
 
 .variables-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 100px;
+  grid-template-columns: 1fr 1fr 80px;
   gap: 0;
   border-bottom: 1px solid #eee;
   align-items: center;
+  padding: 0;
 }
 
 .variables-row:last-child {
@@ -639,6 +665,7 @@ pre {
   font-size: 13px;
   font-family: 'Courier New', monospace;
   background: transparent;
+  box-sizing: border-box;
 }
 
 .variables-input:focus {
@@ -674,11 +701,12 @@ pre {
   border: 1px solid #ddd;
   border-radius: 4px;
   overflow: hidden;
+  display: grid;
 }
 
 .headers-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 100px;
+  grid-template-columns: 40px 1fr 1fr 80px;
   gap: 0;
   border-bottom: 1px solid #eee;
   align-items: center;
@@ -737,6 +765,13 @@ pre {
 
 .headers-input-value:disabled {
   color: #ccc;
+}
+
+.headers-input-check {
+  width: 20px;
+  height: 20px;
+  margin: 0 auto;
+  cursor: pointer;
 }
 
 .env-selector-group {

@@ -1,4 +1,5 @@
 import React from 'react';
+import { importEnvironmentFromJson } from '../services/jsonImportService';
 
 
 interface CreateEnvironmentModalProps {
@@ -27,9 +28,28 @@ export const CreateEnvironmentModal = ({
       setError('Environment already exists');
       return;
     }
-    onCreate(envName, envVariables);
+
+    // Filter out duplicate keys and track which were ignored
+    const seenKeys = new Set<string>();
+    const ignoredKeys: string[] = [];
+    const uniqueVars = envVariables.filter(variable => {
+      if (seenKeys.has(variable.key)) {
+        ignoredKeys.push(variable.key);
+        return false;
+      }
+      seenKeys.add(variable.key);
+      return true;
+    });
+
+    // Show info about ignored variables
+    if (ignoredKeys.length > 0) {
+      setError(`Environment created. Ignored duplicate keys: ${ignoredKeys.join(', ')}`);
+    } else {
+      setError('');
+    }
+
+    onCreate(envName, uniqueVars);
     setEnvName('');
-    setError('');
   };
 
   const handleClose = () => {
@@ -39,12 +59,45 @@ export const CreateEnvironmentModal = ({
   };
 
   const importFromJson = async() => {
-    const filePaths = await window.electron.ipcRenderer.invoke('open-file');
-    const jsonContents = JSON.parse(filePaths.contents)
-    jsonContents.name? setEnvName(jsonContents.name) : ''
-    let variables = jsonContents.values
-    setEnvVariables(variables)
-    console.log(jsonContents.id)
+    try {
+      const filePaths = await window.electron.ipcRenderer.invoke('open-file');
+      
+      if (!filePaths || !filePaths.contents) {
+        setError('No file selected or file is empty');
+        return;
+      }
+
+      const { name, variables, error } = importEnvironmentFromJson(filePaths.contents);
+
+      if (error) {
+        setError(error);
+        return;
+      }
+
+      // Filter out duplicate keys within the imported data
+      const seenKeys = new Set<string>();
+      const ignoredKeys: string[] = [];
+      const uniqueVars = (variables || []).filter(variable => {
+        if (seenKeys.has(variable.key)) {
+          ignoredKeys.push(variable.key);
+          return false;
+        }
+        seenKeys.add(variable.key);
+        return true;
+      });
+
+      setEnvName(name);
+      setEnvVariables(uniqueVars);
+
+      // Show info about ignored variables
+      if (ignoredKeys.length > 0) {
+        setError(`Imported. Ignored duplicate keys in JSON: ${ignoredKeys.join(', ')}`);
+      } else {
+        setError('');
+      }
+    } catch (err) {
+      setError(`Error importing file: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
   }
 
   if (!isOpen) return null;
