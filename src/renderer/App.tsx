@@ -10,7 +10,7 @@ import { VariablesManager } from './components/VariablesManager';
 import { CreateEnvironmentModal } from './components/CreateEnvironmentModal';
 import { EnvironmentSelector } from './components/EnvironmentSelector';
 import { RequestBuilder } from './components/RequestBuilder';
-import { saveGlobalVariables, saveLocalVariables, saveActiveLocalEnv, loadLocalVariables, loadActiveLocalEnv, loadGlobalVariables } from './services/storageService' 
+import { saveGlobalVariables, saveLocalVariables, saveActiveLocalEnv, loadLocalVariables, loadActiveLocalEnv, loadGlobalVariables, saveLayoutOrientation, loadLayoutOrientation, saveActiveTabId, loadActiveTabId } from './services/storageService' 
 import { saveTabs, getActiveTabId, loadTabs, createNewTab, removeTabFromList, updateTabInList } from './services/tabService'
 import { VARIABLES_TAB_ID, LOCAL_VARIABLES_TAB_ID } from './vars/tabIds'
 import { Variable } from './components/VariablesManager';
@@ -35,7 +35,7 @@ export interface RequestTab {
 }
 
 export default function App() {
-  const [activeTabId, setActiveTabId] = useState(() => getActiveTabId());
+  const [activeTabId, setActiveTabId] = useState(() => loadActiveTabId() || getActiveTabId());
   const [emptyParamKey, setEmptyParamKey] = useState('');
   const [emptyHeaderKey, setEmptyHeaderKey] = useState('');
   const [globalVariablesTabVisible, setGlobalVariablesTabVisible] = useState(false);
@@ -45,6 +45,7 @@ export default function App() {
   const [activeLocalEnv, setActiveLocalEnv] = useState<string>(() => loadActiveLocalEnv());
   const [globalVariables, setGlobalVariables] = useState<Variable[]>(() => loadGlobalVariables());
   const [tabs, setTabs] = useState<RequestTab[]>(() => loadTabs());
+  const [layoutOrientation, setLayoutOrientation] = useState<'row' | 'column'>(() => loadLayoutOrientation());
   const currentTab = tabs.find(t => t.id === activeTabId);
   const isGlobalVariablesTabOpen = activeTabId === VARIABLES_TAB_ID;
   const isLocalVariablesTabOpen = activeTabId === LOCAL_VARIABLES_TAB_ID;
@@ -68,6 +69,14 @@ export default function App() {
   useEffect(() => {
     saveTabs(tabs);
   }, [tabs]);
+
+  useEffect(() => {
+    saveActiveTabId(activeTabId);
+  }, [activeTabId]);
+
+  useEffect(() => {
+    saveLayoutOrientation(layoutOrientation);
+  }, [layoutOrientation]);
 
 
   const updateTab = (updates: Partial<RequestTab>) => {
@@ -247,30 +256,38 @@ export default function App() {
                 localVariables={localVariables}
                 activeLocalEnv={activeLocalEnv}
                 />
-
-        <RequestBuilder
-          currentTab={currentTab}
-          emptyParamKey={emptyParamKey}
-          emptyHeaderKey={emptyHeaderKey}
-          updateTab={updateTab}
-          setEmptyParamKey={setEmptyParamKey}
-          setEmptyHeaderKey={setEmptyHeaderKey}
-        />
+          <div className={`layout-container ${layoutOrientation}`}>
+            <div className="request-response-wrapper">
+              <RequestBuilder
+                currentTab={currentTab}
+                emptyParamKey={emptyParamKey}
+                emptyHeaderKey={emptyHeaderKey}
+                updateTab={updateTab}
+                setEmptyParamKey={setEmptyParamKey}
+                setEmptyHeaderKey={setEmptyHeaderKey}
+              />
+            </div>
+            {currentTab && currentTab.error && <div className="error">{currentTab.error}</div>}
+            {currentTab && (
+              <ResponseViewer
+                response={currentTab.response}
+                headers={currentTab.headers}
+                responseInfo={currentTab.responseInfo}
+                activeTab={currentTab.activeTab}
+                onTabChange={(tab) => updateTab({activeTab: tab})}
+                fullUrl={currentTab.sentUrl}
+              />
+            )}
+            <button
+              className="layout-toggle-btn"
+              onClick={() => setLayoutOrientation(layoutOrientation === 'column' ? 'row' : 'column')}
+              title={`Switch to ${layoutOrientation === 'column' ? 'row' : 'column'} layout`}
+            >
+              {layoutOrientation === 'column' ? '↔' : '↕'}
+            </button>
+          </div>
         </div>
       ) : null}
-
-      {currentTab && currentTab.error && <div className="error">{currentTab.error}</div>}
-
-      {currentTab && (currentTab.response || currentTab.responseInfo) && (
-        <ResponseViewer
-          response={currentTab.response}
-          headers={currentTab.headers}
-          responseInfo={currentTab.responseInfo}
-          activeTab={currentTab.activeTab}
-          onTabChange={(tab) => updateTab({activeTab: tab})}
-          fullUrl={currentTab.sentUrl}
-        />
-      )}
 
       <CreateEnvironmentModal
         isOpen={showCreateEnvModal}

@@ -117,7 +117,7 @@ export const ResponseViewer = ({
               </button>
             </div>
 
-            <div className="tab-content">
+            <div className="tab-content-test">
               {activeTab === 'body' && renderResponse()}
               {activeTab === 'headers' && renderHeaders()}
               {activeTab === 'info' && renderInfo()}

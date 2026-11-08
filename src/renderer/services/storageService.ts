@@ -39,3 +39,23 @@ export const saveActiveLocalEnv = (envName: string) => {
 export const loadActiveLocalEnv = (): string => {
   return localStorage.getItem(ACTIVE_LOCAL_ENV_STORAGE_KEY) || '';
 };
+
+const LAYOUT_ORIENTATION_STORAGE_KEY = 'postyamil_layout_orientation';
+const ACTIVE_TAB_ID_STORAGE_KEY = 'postyamil_active_tab_id';
+
+export const saveLayoutOrientation = (orientation: 'row' | 'column') => {
+  localStorage.setItem(LAYOUT_ORIENTATION_STORAGE_KEY, orientation);
+};
+
+export const loadLayoutOrientation = (): 'row' | 'column' => {
+  const stored = localStorage.getItem(LAYOUT_ORIENTATION_STORAGE_KEY);
+  return (stored === 'row' || stored === 'column') ? stored : 'column';
+};
+
+export const saveActiveTabId = (tabId: string) => {
+  localStorage.setItem(ACTIVE_TAB_ID_STORAGE_KEY, tabId);
+};
+
+export const loadActiveTabId = (): string => {
+  return localStorage.getItem(ACTIVE_TAB_ID_STORAGE_KEY) || '';
+};

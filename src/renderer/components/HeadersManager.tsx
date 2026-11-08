@@ -28,7 +28,16 @@ export const HeadersManager = ({
   };
 
   const handleEmptyKeyChange = (value: string) => {
+    if (value.trim() && !emptyHeaderKey.trim()) {
+      const newIndex = currentTab.queryParams.length;
+      updateTab({ queryParams: [...currentTab.queryParams, { checked: true, key: value, value: '' }] });
+
+      setTimeout(() => {
+        keyInputRefs.current.get(newIndex)?.focus();
+      }, 0);
+    } else  {
     setEmptyHeaderKey(value);
+    }
   };
 
   const handleEmptyKeyKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
