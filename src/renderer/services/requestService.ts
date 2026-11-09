@@ -42,7 +42,8 @@ export const handleSendRequest = async (
   globalVariables: any,
   localVariables: any,
   activeLocalEnv: string,
-  updateTab: (updates: Partial<RequestTab>) => void
+  updateTab: (updates: Partial<RequestTab>) => void,
+  trackRequest?: (url: string, method: string, status: number) => void
 ) => {
   if (!currentTab || !currentTab.baseUrl.trim()) {
     if (currentTab) {
@@ -121,6 +122,11 @@ export const handleSendRequest = async (
       sentUrl: displayUrl,
       error: '',
     });
+
+    // Track request in history
+    if (trackRequest) {
+      trackRequest(displayUrl, currentTab.method, result.status);
+    }
   } catch (err) {
     console.error('Request error:', err);
     updateTab({

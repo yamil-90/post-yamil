@@ -9,6 +9,13 @@ interface ResponseViewerProps {
   fullUrl: string;
 }
 
+const getStatusColor = (status: number): string => {
+  if (status >= 200 && status < 300) return '#28a745';
+  if (status >= 300 && status < 400) return '#ffc107';
+  if (status >= 400) return '#dc3545';
+  return '#6c757d';
+};
+
 export const ResponseViewer = ({
   response,
   headers,
@@ -21,9 +28,7 @@ export const ResponseViewer = ({
   const renderInfo = () => {
       if (!responseInfo) return null;
 
-      const statusColor = responseInfo.status >= 200 && responseInfo.status < 300 ? '#28a745' : 
-                          responseInfo.status >= 300 && responseInfo.status < 400 ? '#ffc107' :
-                          responseInfo.status >= 400 ? '#dc3545' : '#6c757d';
+      const statusColor = getStatusColor(responseInfo.status);
 
       return (
           <div className="info-container">
@@ -48,6 +53,20 @@ export const ResponseViewer = ({
           </div>
       );
   };
+
+  const renderInfoReduced = () => {
+      if (!responseInfo) return null;
+      const statusColor = getStatusColor(responseInfo.status);
+      return (
+        <div className="info-reduced" >
+          <span style={{ color: statusColor }}>{responseInfo.status} {responseInfo.statusText}</span>
+          <span style={{ margin: '0 12px', color: '#999' }}>•</span>
+          <span>{formatBytes(responseInfo.size)}</span>
+          <span style={{ margin: '0 12px', color: '#999' }}>•</span>
+          <span>{responseInfo.time}ms</span>
+        </div>
+      )
+  }
 
   const renderHeaders = () => {
       if (Object.keys(headers).length === 0) {
@@ -96,27 +115,30 @@ export const ResponseViewer = ({
   };
 
   return  <div className="response-section">
-            <div className="tabs">
-              <button
-                className={`tab ${activeTab === 'body' ? 'active' : ''}`}
-                onClick={() => onTabChange( 'body' )}
-              >
-                Body
-              </button>
-              <button
-                className={`tab ${activeTab === 'headers' ? 'active' : ''}`}
-                onClick={() => onTabChange( 'headers' )}
-              >
-                Headers
-              </button>
-              <button
-                className={`tab ${activeTab === 'info' ? 'active' : ''}`}
-                onClick={() => onTabChange( 'info' )}
-              >
-                Info
-              </button>
-            </div>
+            <div className="response-builder">
+              <div className="tabs">
+                <button
+                  className={`tab ${activeTab === 'body' ? 'active' : ''}`}
+                  onClick={() => onTabChange( 'body' )}
+                >
+                  Body
+                </button>
+                <button
+                  className={`tab ${activeTab === 'headers' ? 'active' : ''}`}
+                  onClick={() => onTabChange( 'headers' )}
+                >
+                  Headers
+                </button>
+                <button
+                  className={`tab ${activeTab === 'info' ? 'active' : ''}`}
+                  onClick={() => onTabChange( 'info' )}
+                >
+                  Info
+                </button>
 
+                {renderInfoReduced()}
+              </div>
+            </div>
             <div className="tab-content-test">
               {activeTab === 'body' && renderResponse()}
               {activeTab === 'headers' && renderHeaders()}

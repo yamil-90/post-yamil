@@ -1,17 +1,27 @@
 import { useState, useEffect } from 'react';
 
 import './App.css';
-import { getMethodColor } from './helpers/formatting';
 import { ResponseViewer } from './components/ResponseViewer';
-import { QueryViewer } from './components/QueryViewer';
-import { BodyViewer } from './components/BodyViewer';
-import { HeadersManager } from './components/HeadersManager';
 import { VariablesManager } from './components/VariablesManager';
 import { CreateEnvironmentModal } from './components/CreateEnvironmentModal';
+import { ConfirmModal } from './components/ConfirmModal';
 import { EnvironmentSelector } from './components/EnvironmentSelector';
 import { RequestBuilder } from './components/RequestBuilder';
-import { saveGlobalVariables, saveLocalVariables, saveActiveLocalEnv, loadLocalVariables, loadActiveLocalEnv, loadGlobalVariables, saveLayoutOrientation, loadLayoutOrientation, saveActiveTabId, loadActiveTabId } from './services/storageService' 
+import { SidebarMenu } from './components/SidebarMenu';
+import { HistoryPanel } from './components/HistoryPanel';
+import { SavedRequestsPanel } from './components/SavedRequestsPanel';
+import { saveLayoutOrientation, loadLayoutOrientation, saveActiveTabId, loadActiveTabId } from './services/storageService' 
 import { saveTabs, getActiveTabId, loadTabs, createNewTab, removeTabFromList, updateTabInList } from './services/tabService'
+import {
+  loadWorkspaces,
+  saveWorkspaces,
+  loadActiveWorkspaceId,
+  saveActiveWorkspaceId,
+  addToHistory,
+  Workspace,
+  SavedRequest,
+  RequestHistory,
+} from './services/workspaceService'
 import { VARIABLES_TAB_ID, LOCAL_VARIABLES_TAB_ID } from './vars/tabIds'
 import { Variable } from './components/VariablesManager';
 import { UrlInputViewer } from './components/UrlInputViewer';
@@ -35,33 +45,92 @@ export interface RequestTab {
 }
 
 export default function App() {
+  // Workspace state
+  const [workspaces, setWorkspaces] = useState<Workspace[]>(() => loadWorkspaces());
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState(() => loadActiveWorkspaceId());
+  const currentWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
+
+  // Sidebar state
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activePanel, setActivePanel] = useState<'none' | 'my-requests' | 'history'>('none');
+
+  // Tab state
   const [activeTabId, setActiveTabId] = useState(() => loadActiveTabId() || getActiveTabId());
+  const [tabs, setTabs] = useState<RequestTab[]>(() => loadTabs());
+  const [layoutOrientation, setLayoutOrientation] = useState<'row' | 'column'>(() => loadLayoutOrientation());
+
+  // UI state
   const [emptyParamKey, setEmptyParamKey] = useState('');
   const [emptyHeaderKey, setEmptyHeaderKey] = useState('');
   const [globalVariablesTabVisible, setGlobalVariablesTabVisible] = useState(false);
   const [localVariablesTabVisible, setLocalVariablesTabVisible] = useState(false);
   const [showCreateEnvModal, setShowCreateEnvModal] = useState(false);
-  const [localVariables, setLocalVariables] = useState<Record<string, Variable[]>>(() => loadLocalVariables());
-  const [activeLocalEnv, setActiveLocalEnv] = useState<string>(() => loadActiveLocalEnv());
-  const [globalVariables, setGlobalVariables] = useState<Variable[]>(() => loadGlobalVariables());
-  const [tabs, setTabs] = useState<RequestTab[]>(() => loadTabs());
-  const [layoutOrientation, setLayoutOrientation] = useState<'row' | 'column'>(() => loadLayoutOrientation());
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [envToDelete, setEnvToDelete] = useState<string>('');
+  const [showSaveRequestModal, setShowSaveRequestModal] = useState(false);
+  const [saveRequestName, setSaveRequestName] = useState('');
+  const [saveRequestDescription, setSaveRequestDescription] = useState('');
+
+  // Local environment state - initialized when workspace loads
+  const [localVariables, setLocalVariables] = useState<Record<string, Variable[]>>({});
+  const [activeLocalEnv, setActiveLocalEnv] = useState<string>('');
+  const [globalVariables, setGlobalVariables] = useState<Variable[]>([]);
+
+  // References and computations
   const currentTab = tabs.find(t => t.id === activeTabId);
   const isGlobalVariablesTabOpen = activeTabId === VARIABLES_TAB_ID;
   const isLocalVariablesTabOpen = activeTabId === LOCAL_VARIABLES_TAB_ID;
 
-  // Save variables to localStorage whenever they change
+  // Save workspaces to localStorage whenever they change
   useEffect(() => {
-    saveGlobalVariables(globalVariables);
+    saveWorkspaces(workspaces);
+  }, [workspaces]);
+
+  // Save active workspace ID
+  useEffect(() => {
+    saveActiveWorkspaceId(activeWorkspaceId);
+  }, [activeWorkspaceId]);
+
+  // Initialize local state when workspace loads or changes
+  useEffect(() => {
+    if (currentWorkspace) {
+      setLocalVariables(currentWorkspace.localVariables || {});
+      setActiveLocalEnv(currentWorkspace.activeLocalEnv || '');
+      setGlobalVariables(currentWorkspace.globalVariables || []);
+    }
+  }, [activeWorkspaceId]);
+
+  // Save variables to current workspace whenever they change
+  useEffect(() => {
+    if (currentWorkspace) {
+      const updatedWorkspaces = workspaces.map(w =>
+        w.id === activeWorkspaceId
+          ? { ...w, globalVariables }
+          : w
+      );
+      setWorkspaces(updatedWorkspaces);
+    }
   }, [globalVariables]);
 
   useEffect(() => {
-    saveLocalVariables(localVariables);
+    if (currentWorkspace) {
+      const updatedWorkspaces = workspaces.map(w =>
+        w.id === activeWorkspaceId
+          ? { ...w, localVariables }
+          : w
+      );
+      setWorkspaces(updatedWorkspaces);
+    }
   }, [localVariables]);
 
   useEffect(() => {
-    if (activeLocalEnv) {
-      saveActiveLocalEnv(activeLocalEnv);
+    if (currentWorkspace && activeLocalEnv) {
+      const updatedWorkspaces = workspaces.map(w =>
+        w.id === activeWorkspaceId
+          ? { ...w, activeLocalEnv }
+          : w
+      );
+      setWorkspaces(updatedWorkspaces);
     }
   }, [activeLocalEnv]);
 
@@ -99,6 +168,84 @@ export default function App() {
     }
   };
 
+  // Workspace functions
+  const updateWorkspace = (updatedWorkspace: Workspace) => {
+    const updatedWorkspaces = workspaces.map(w =>
+      w.id === activeWorkspaceId ? updatedWorkspace : w
+    );
+    setWorkspaces(updatedWorkspaces);
+  };
+
+  const trackRequest = (url: string, method: string, status: number) => {
+    if (!currentWorkspace) return;
+    const updatedHistory = addToHistory(currentWorkspace.history, url, method, status);
+    updateWorkspace({
+      ...currentWorkspace,
+      history: updatedHistory,
+    });
+  };
+
+  const saveCurrentRequest = (name: string, description: string, groupId?: string) => {
+    if (!currentTab || !currentWorkspace) return;
+
+    const newSavedRequest: SavedRequest = {
+      id: Math.random().toString(),
+      name,
+      description,
+      groupId,
+      url: currentTab.baseUrl,
+      method: currentTab.method,
+      body: currentTab.body,
+      queryParams: currentTab.queryParams,
+      requestHeaders: currentTab.requestHeaders,
+      createdAt: Date.now(),
+    };
+
+    updateWorkspace({
+      ...currentWorkspace,
+      savedRequests: [...currentWorkspace.savedRequests, newSavedRequest],
+    });
+
+    setShowSaveRequestModal(false);
+    setSaveRequestName('');
+    setSaveRequestDescription('');
+  };
+
+  const loadSavedRequest = (savedRequest: SavedRequest) => {
+    const newTab = createNewTab();
+    const updatedTab: RequestTab = {
+      ...newTab,
+      baseUrl: savedRequest.url,
+      url: savedRequest.url,
+      method: savedRequest.method,
+      body: savedRequest.body,
+      queryParams: savedRequest.queryParams,
+      requestHeaders: savedRequest.requestHeaders,
+      name: savedRequest.name,
+    };
+
+    setTabs([...tabs, updatedTab]);
+    setActiveTabId(updatedTab.id);
+    setSidebarOpen(false);
+    setActivePanel('none');
+  };
+
+  const handleLoadHistoryRequest = (historyEntry: RequestHistory) => {
+    const newTab = createNewTab();
+    const updatedTab: RequestTab = {
+      ...newTab,
+      baseUrl: historyEntry.url,
+      url: historyEntry.url,
+      method: historyEntry.method,
+      name: historyEntry.url,
+    };
+
+    setTabs([...tabs, updatedTab]);
+    setActiveTabId(updatedTab.id);
+    setSidebarOpen(false);
+    setActivePanel('none');
+  };
+
   const openGlobalVariablesTab = () => {
     if (!isGlobalVariablesTabOpen) {
       setGlobalVariablesTabVisible(true);
@@ -123,17 +270,70 @@ export default function App() {
   };
 
   const handleDeleteEnvironment = (name: string) => {
-    const updated = {...localVariables}
-    delete updated[name]
+    setEnvToDelete(name);
+    setShowConfirmDelete(true);
+  };
 
-    setLocalVariables(updated)
-    const first = Object.keys(localVariables)[0] ?? '';
-    setActiveLocalEnv(first);
-    saveActiveLocalEnv(first)
+  const confirmDeleteEnvironment = () => {
+    if (envToDelete) {
+      const updated = {...localVariables}
+      delete updated[envToDelete]
+
+      setLocalVariables(updated)
+      const first = Object.keys(updated)[0] ?? '';
+      setActiveLocalEnv(first);
+      setShowConfirmDelete(false);
+      setEnvToDelete('');
+    }
   };
 
   return (
-    <div className="container">
+    <div className={`container ${activePanel !== 'none' ? 'panel-open' : ''}`}>
+      <SidebarMenu
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        onMyRequestsClick={() => {
+          setActivePanel(activePanel === 'my-requests' ? 'none' : 'my-requests');
+          setSidebarOpen(false);
+        }}
+        onHistoryClick={() => {
+          setActivePanel(activePanel === 'history' ? 'none' : 'history');
+          setSidebarOpen(false);
+        }}
+        activePanel={activePanel}
+        onPanelClose={() => setActivePanel('none')}
+      />
+
+      {activePanel === 'my-requests' && currentWorkspace && (
+        <SavedRequestsPanel
+          isOpen={true}
+          savedRequests={currentWorkspace.savedRequests}
+          requestGroups={currentWorkspace.requestGroups}
+          onRequestClick={loadSavedRequest}
+          onEditClick={(request) => {
+            loadSavedRequest(request);
+            setSaveRequestName(request.name);
+            setSaveRequestDescription(request.description);
+          }}
+          onDeleteClick={(request) => {
+            updateWorkspace({
+              ...currentWorkspace,
+              savedRequests: currentWorkspace.savedRequests.filter(r => r.id !== request.id),
+            });
+          }}
+          onClose={() => setActivePanel('none')}
+        />
+      )}
+
+      {activePanel === 'history' && currentWorkspace && (
+        <HistoryPanel
+          isOpen={true}
+          history={currentWorkspace.history}
+          onRequestClick={handleLoadHistoryRequest}
+          onClose={() => setActivePanel('none')}
+        />
+      )}
+
       <div className="header-top">
         <h1>PostYamil - HTTP Client</h1>
         <div className="header-controls">
@@ -255,7 +455,17 @@ export default function App() {
                 globalVariables={globalVariables}
                 localVariables={localVariables}
                 activeLocalEnv={activeLocalEnv}
+                onRequestSent={trackRequest}
                 />
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+            <button
+              className="save-request-btn"
+              onClick={() => setShowSaveRequestModal(true)}
+              title="Save this request for later"
+            >
+              💾 Save Request
+            </button>
+          </div>
           <div className={`layout-container ${layoutOrientation}`}>
             <div className="request-response-wrapper">
               <RequestBuilder
@@ -294,6 +504,67 @@ export default function App() {
         onClose={() => setShowCreateEnvModal(false)}
         onCreate={handleCreateEnvironment}
         existingEnvironments={Object.keys(localVariables)}
+      />
+
+      <ConfirmModal
+        isOpen={showConfirmDelete}
+        title="Delete Environment"
+        message={`Are you sure you want to delete the environment "${envToDelete}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDangerous={true}
+        onConfirm={confirmDeleteEnvironment}
+        onCancel={() => {
+          setShowConfirmDelete(false);
+          setEnvToDelete('');
+        }}
+      />
+
+      <ConfirmModal
+        isOpen={showSaveRequestModal}
+        title="Save Request"
+        message={
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <input
+              type="text"
+              placeholder="Request name"
+              value={saveRequestName}
+              onChange={(e) => setSaveRequestName(e.target.value)}
+              style={{
+                padding: '8px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '14px',
+              }}
+            />
+            <textarea
+              placeholder="Description (optional)"
+              value={saveRequestDescription}
+              onChange={(e) => setSaveRequestDescription(e.target.value)}
+              style={{
+                padding: '8px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '14px',
+                minHeight: '60px',
+                fontFamily: 'monospace',
+              }}
+            />
+          </div>
+        }
+        confirmText="Save"
+        cancelText="Cancel"
+        isDangerous={false}
+        onConfirm={() => {
+          if (saveRequestName.trim()) {
+            saveCurrentRequest(saveRequestName, saveRequestDescription);
+          }
+        }}
+        onCancel={() => {
+          setShowSaveRequestModal(false);
+          setSaveRequestName('');
+          setSaveRequestDescription('');
+        }}
       />
     </div>
   );

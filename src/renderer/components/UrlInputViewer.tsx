@@ -5,12 +5,13 @@ import { Variable } from "./VariablesManager";
 
 import { handleUrlChange, handleSendRequest } from '../services/requestService'
 
-interface UrlInputViewer {
+interface UrlInputViewerProps {
     currentTab:RequestTab;
     updateTab:(tab: any) => void;
     globalVariables:Variable[];
     localVariables:Record<string, Variable[]>;
     activeLocalEnv: string;
+    onRequestSent?: (url: string, method: string, status: number) => void;
 }
 
 export const UrlInputViewer = ({
@@ -18,8 +19,9 @@ export const UrlInputViewer = ({
     updateTab,
     globalVariables,
     localVariables,
-    activeLocalEnv
-}:UrlInputViewer) =>{
+    activeLocalEnv,
+    onRequestSent,
+}:UrlInputViewerProps) =>{
 
     return <div className="input-group">
     <select
@@ -44,9 +46,9 @@ export const UrlInputViewer = ({
         placeholder="Enter URL (e.g., api.example.com/data)"
         value={getDisplayUrl(currentTab, globalVariables, localVariables, activeLocalEnv)}
         onChange={(e) => handleUrlChange(e.target.value, updateTab)}
-        onKeyDown={(e) => e.key === 'Enter' && handleSendRequest(currentTab, globalVariables, localVariables, activeLocalEnv, updateTab)}
+        onKeyDown={(e) => e.key === 'Enter' && handleSendRequest(currentTab, globalVariables, localVariables, activeLocalEnv, updateTab, onRequestSent)}
     />
-    <button onClick={() => handleSendRequest(currentTab, globalVariables, localVariables, activeLocalEnv, updateTab)} disabled={currentTab.loading}>
+    <button onClick={() => handleSendRequest(currentTab, globalVariables, localVariables, activeLocalEnv, updateTab, onRequestSent)} disabled={currentTab.loading}>
         {currentTab.loading ? 'Sending...' : 'Send Request'}
     </button>
     </div>
