@@ -20,7 +20,6 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  border-bottom: 1px solid #ddd;
   background-color: white;
 }
 
@@ -1187,6 +1186,7 @@ pre {
   border: none;
   text-align: left;
   font-size: 14px;
+  font-weight: 600;
   color: #333;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -1199,6 +1199,7 @@ pre {
 
 .menu-panel-btn:hover {
   background-color: #f5f5f5;
+  color: #f5f5f5;
 }
 
 .menu-panel-btn.active {
@@ -1318,6 +1319,26 @@ pre {
   word-break: break-all;
   margin-bottom: 6px;
   font-family: 'Courier New', monospace;
+  position: relative;
+  cursor: help;
+}
+
+.history-url[data-title]:hover::after {
+  content: attr(data-title);
+  position: absolute;
+  top: 120%;
+  left: 0;
+  right: 0;
+  background-color: #333;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: normal;
+  word-wrap: break-word;
+  z-index: 2000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  overflow-y: auto;
 }
 
 .history-meta {
@@ -1459,6 +1480,175 @@ pre {
 
 .request-action-btn.delete:hover {
   color: #c82333;
+}
+
+/* Workspaces Panel Styling */
+.workspaces-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.workspace-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+  transition: background-color 0.2s;
+}
+
+.workspace-item:hover {
+  background-color: #f9f9f9;
+}
+
+.workspace-item.active {
+  background-color: #e8f4fd;
+  border-left: 3px solid #007acc;
+  padding-left: 13px;
+}
+
+.workspace-item-content {
+  flex: 1;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.workspace-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.workspace-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: #999;
+}
+
+.workspace-info {
+  display: flex;
+  align-items: center;
+}
+
+.workspace-delete-btn {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  color: #dc3545;
+  cursor: pointer;
+  font-size: 16px;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.workspace-delete-btn:hover {
+  color: #c82333;
+}
+
+.workspace-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.workspace-action-btn {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  color: #007acc;
+  cursor: pointer;
+  font-size: 14px;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.workspace-action-btn:hover {
+  color: #005a9e;
+}
+
+.workspace-action-btn.delete {
+  color: #dc3545;
+}
+
+.workspace-action-btn.delete:hover {
+  color: #c82333;
+}
+
+.workspace-edit-mode {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  align-items: center;
+}
+
+.workspace-edit-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #007acc;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.workspace-edit-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
+.workspace-edit-btn {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.workspace-edit-btn.confirm {
+  color: #28a745;
+}
+
+.workspace-edit-btn.confirm:hover {
+  color: #20c997;
+}
+
+.workspace-edit-btn.cancel {
+  color: #dc3545;
+}
+
+.workspace-edit-btn.cancel:hover {
+  color: #c82333;
+}
+
+.workspace-create-btn {
+  margin: 12px 16px;
+  padding: 8px 12px;
+  background-color: #007acc;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.workspace-create-btn:hover {
+  background-color: #005a9e;
 }
 
 /* Adjust main content when panel is open */

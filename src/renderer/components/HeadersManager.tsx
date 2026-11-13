@@ -29,8 +29,8 @@ export const HeadersManager = ({
 
   const handleEmptyKeyChange = (value: string) => {
     if (value.trim() && !emptyHeaderKey.trim()) {
-      const newIndex = currentTab.queryParams.length;
-      updateTab({ queryParams: [...currentTab.queryParams, { checked: true, key: value, value: '' }] });
+      const newIndex = currentTab.requestHeaders.length;
+      updateTab({ requestHeaders: [...currentTab.requestHeaders, { checked: true, key: value, value: '' }] });
 
       setTimeout(() => {
         keyInputRefs.current.get(newIndex)?.focus();

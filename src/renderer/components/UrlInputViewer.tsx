@@ -2,6 +2,7 @@ import { RequestTab } from "../App";
 import { getDisplayUrl } from '../helpers/urlBuilder';
 import { getMethodColor } from '../helpers/formatting';
 import { Variable } from "./VariablesManager";
+import { isCurlCommand, parseCurl, applyCurlToTab } from '../helpers/curlParser';
 
 import { handleUrlChange, handleSendRequest } from '../services/requestService'
 
@@ -23,6 +24,21 @@ export const UrlInputViewer = ({
     onRequestSent,
 }:UrlInputViewerProps) =>{
 
+    const handleUrlInputChange = (value: string) => {
+        // Check if it's a cURL command
+        if (isCurlCommand(value)) {
+            const parsed = parseCurl(value);
+            if (parsed) {
+                // Apply cURL data to current tab
+                const updates = applyCurlToTab(currentTab, parsed);
+                updateTab(updates);
+                return;
+            }
+        }
+        // Regular URL handling
+        handleUrlChange(value, updateTab);
+    };
+
     return <div className="input-group">
     <select
         value={currentTab.method}
@@ -43,9 +59,9 @@ export const UrlInputViewer = ({
     </select>
     <input
         type="text"
-        placeholder="Enter URL (e.g., api.example.com/data)"
+        placeholder="Enter URL or paste a cURL command"
         value={getDisplayUrl(currentTab, globalVariables, localVariables, activeLocalEnv)}
-        onChange={(e) => handleUrlChange(e.target.value, updateTab)}
+        onChange={(e) => handleUrlInputChange(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && handleSendRequest(currentTab, globalVariables, localVariables, activeLocalEnv, updateTab, onRequestSent)}
     />
     <button onClick={() => handleSendRequest(currentTab, globalVariables, localVariables, activeLocalEnv, updateTab, onRequestSent)} disabled={currentTab.loading}>

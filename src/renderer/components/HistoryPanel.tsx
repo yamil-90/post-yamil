@@ -12,19 +12,19 @@ const formatDate = (timestamp: number): string => {
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now.getTime() - date.getTime();
-  
+
   // Less than 1 hour
   if (diff < 60 * 60 * 1000) {
     const minutes = Math.floor(diff / (60 * 1000));
     return `${minutes}m ago`;
   }
-  
+
   // Less than 1 day
   if (diff < 24 * 60 * 60 * 1000) {
     const hours = Math.floor(diff / (60 * 60 * 1000));
     return `${hours}h ago`;
   }
-  
+
   // Otherwise show date
   return date.toLocaleDateString();
 };
@@ -70,7 +70,10 @@ export const HistoryPanel = ({
                 <div className="history-method" style={{ color: '#666' }}>
                   {entry.method}
                 </div>
-                <div className="history-url">{entry.url}</div>
+                {/* change so that the url gets cut off if too long... add a tooltip with the whole url? */}
+                <div className="history-url" data-title={entry.url}>
+                  {entry.url.length > 200 ? entry.url.substring(0, 200) + '...' : entry.url}
+                </div>
                 <div className="history-meta">
                   <span
                     className="history-status"

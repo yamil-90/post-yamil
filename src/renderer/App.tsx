@@ -4,12 +4,15 @@ import './App.css';
 import { ResponseViewer } from './components/ResponseViewer';
 import { VariablesManager } from './components/VariablesManager';
 import { CreateEnvironmentModal } from './components/CreateEnvironmentModal';
+import { EnvironmentsPanel } from './components/EnvironmentsPanel';
 import { ConfirmModal } from './components/ConfirmModal';
 import { EnvironmentSelector } from './components/EnvironmentSelector';
 import { RequestBuilder } from './components/RequestBuilder';
 import { SidebarMenu } from './components/SidebarMenu';
 import { HistoryPanel } from './components/HistoryPanel';
 import { SavedRequestsPanel } from './components/SavedRequestsPanel';
+import { WorkspacesPanel } from './components/WorkspacesPanel';
+import { CreateWorkspaceModal } from './components/CreateWorkspaceModal';
 import { saveLayoutOrientation, loadLayoutOrientation, saveActiveTabId, loadActiveTabId } from './services/storageService' 
 import { saveTabs, getActiveTabId, loadTabs, createNewTab, removeTabFromList, updateTabInList } from './services/tabService'
 import {
@@ -18,6 +21,7 @@ import {
   loadActiveWorkspaceId,
   saveActiveWorkspaceId,
   addToHistory,
+  createDefaultWorkspace,
   Workspace,
   SavedRequest,
   RequestHistory,
@@ -42,6 +46,8 @@ export interface RequestTab {
   loading: boolean;
   error: string;
   activeTab: 'body' | 'headers' | 'info';
+  type?: 'request' | 'variables';
+  environmentName?: string;
 }
 
 export default function App() {
@@ -52,7 +58,7 @@ export default function App() {
 
   // Sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activePanel, setActivePanel] = useState<'none' | 'my-requests' | 'history'>('none');
+  const [activePanel, setActivePanel] = useState<'none' | 'my-requests' | 'history' | 'workspaces' | 'environments'>('none');
 
   // Tab state
   const [activeTabId, setActiveTabId] = useState(() => loadActiveTabId() || getActiveTabId());
@@ -70,6 +76,11 @@ export default function App() {
   const [showSaveRequestModal, setShowSaveRequestModal] = useState(false);
   const [saveRequestName, setSaveRequestName] = useState('');
   const [saveRequestDescription, setSaveRequestDescription] = useState('');
+  const [showCreateWorkspaceModal, setShowCreateWorkspaceModal] = useState(false);
+  const [showConfirmDeleteWorkspace, setShowConfirmDeleteWorkspace] = useState(false);
+  const [workspaceToDelete, setWorkspaceToDelete] = useState<string>('');
+  const [showConfirmDeleteRequest, setShowConfirmDeleteRequest] = useState(false);
+  const [requestToDelete, setRequestToDelete] = useState<SavedRequest | null>(null);
 
   // Local environment state - initialized when workspace loads
   const [localVariables, setLocalVariables] = useState<Record<string, Variable[]>>({});
@@ -246,6 +257,50 @@ export default function App() {
     setActivePanel('none');
   };
 
+  const switchWorkspace = (workspaceId: string) => {
+    setActiveWorkspaceId(workspaceId);
+    setSidebarOpen(false);
+    setActivePanel('none');
+  };
+
+  const createNewWorkspace = () => {
+    setShowCreateWorkspaceModal(true);
+  };
+
+  const handleCreateWorkspace = (name: string) => {
+    const newWorkspaceId = Math.random().toString();
+    const newWorkspace = createDefaultWorkspace(newWorkspaceId, name);
+    setWorkspaces([...workspaces, newWorkspace]);
+    setActiveWorkspaceId(newWorkspaceId);
+    setShowCreateWorkspaceModal(false);
+    setSidebarOpen(false);
+    setActivePanel('none');
+  };
+
+  const deleteWorkspace = (workspaceId: string) => {
+    if (workspaceId === activeWorkspaceId) {
+      // Cannot delete active workspace
+      return;
+    }
+    setWorkspaceToDelete(workspaceId);
+    setShowConfirmDeleteWorkspace(true);
+  };
+
+  const confirmDeleteWorkspace = () => {
+    if (workspaceToDelete) {
+      setWorkspaces(workspaces.filter(w => w.id !== workspaceToDelete));
+      setShowConfirmDeleteWorkspace(false);
+      setWorkspaceToDelete('');
+    }
+  };
+
+  const updateWorkspaceName = (workspaceId: string, newName: string) => {
+    const updated = workspaces.map(w =>
+      w.id === workspaceId ? { ...w, name: newName } : w
+    );
+    setWorkspaces(updated);
+  };
+
   const openGlobalVariablesTab = () => {
     if (!isGlobalVariablesTabOpen) {
       setGlobalVariablesTabVisible(true);
@@ -258,6 +313,27 @@ export default function App() {
       setLocalVariablesTabVisible(true);
       setActiveTabId(LOCAL_VARIABLES_TAB_ID);
     }
+  };
+
+  const openEnvironmentTab = (envName: string) => {
+    // Check if a tab for this environment already exists
+    const existingTab = tabs.find(t => t.environmentName === envName);
+    if (existingTab) {
+      // Switch to existing tab
+      setActiveTabId(existingTab.id);
+    } else {
+      // Create new environment tab
+      const newTab = createNewTab();
+      const envTab: RequestTab = {
+        ...newTab,
+        name: envName,
+        type: 'variables',
+        environmentName: envName,
+      };
+      setTabs([...tabs, envTab]);
+      setActiveTabId(envTab.id);
+    }
+    setActivePanel('none');
   };
 
   const handleCreateEnvironment = (name: string, variables?:  { key: string; value: string }[]) => {
@@ -300,6 +376,14 @@ export default function App() {
           setActivePanel(activePanel === 'history' ? 'none' : 'history');
           setSidebarOpen(false);
         }}
+        onWorkspacesClick={() => {
+          setActivePanel(activePanel === 'workspaces' ? 'none' : 'workspaces');
+          setSidebarOpen(false);
+        }}
+        onEnvironmentsClick={() => {
+          setActivePanel(activePanel === 'environments' ? 'none' : 'environments');
+          setSidebarOpen(false);
+        }}
         activePanel={activePanel}
         onPanelClose={() => setActivePanel('none')}
       />
@@ -316,10 +400,8 @@ export default function App() {
             setSaveRequestDescription(request.description);
           }}
           onDeleteClick={(request) => {
-            updateWorkspace({
-              ...currentWorkspace,
-              savedRequests: currentWorkspace.savedRequests.filter(r => r.id !== request.id),
-            });
+            setRequestToDelete(request);
+            setShowConfirmDeleteRequest(true);
           }}
           onClose={() => setActivePanel('none')}
         />
@@ -334,6 +416,28 @@ export default function App() {
         />
       )}
 
+      {activePanel === 'workspaces' && (
+        <WorkspacesPanel
+          isOpen={true}
+          workspaces={workspaces}
+          activeWorkspaceId={activeWorkspaceId}
+          onWorkspaceSelect={switchWorkspace}
+          onCreateWorkspace={createNewWorkspace}
+          onDeleteWorkspace={deleteWorkspace}
+          onUpdateWorkspaceName={updateWorkspaceName}
+          onClose={() => setActivePanel('none')}
+        />
+      )}
+      {activePanel === 'environments' && (
+        <EnvironmentsPanel 
+          isOpen={true}
+          activeLocalEnv={activeLocalEnv}
+          localVariables={localVariables}
+          openGlobalVariablesTab={openGlobalVariablesTab}
+          onOpenEnvironmentTab={openEnvironmentTab}
+          onClose={() => setActivePanel('none')}
+        />
+      )}
       <div className="header-top">
         <h1>PostYamil - HTTP Client</h1>
         <div className="header-controls">
@@ -430,7 +534,7 @@ export default function App() {
         </div>
       ) : isLocalVariablesTabOpen ? (
         <div className="request-section">
-            {activeLocalEnv}
+            <h2 style={{ marginTop: 0, marginBottom: '16px' }}>{activeLocalEnv}</h2>
           {activeLocalEnv ? (
             <VariablesManager
               variables={localVariables[activeLocalEnv] || []}
@@ -446,6 +550,19 @@ export default function App() {
               <p>Please select a local environment from the dropdown above or <button className='btn-link' onClick={()=>setShowCreateEnvModal(true)} >create one</button></p>
             </div>
           )}
+        </div>
+      ) : currentTab?.type === 'variables' && currentTab.environmentName ? (
+        <div className="request-section">
+          <h2 style={{ marginTop: 0, marginBottom: '16px' }}>{currentTab.environmentName}</h2>
+          <VariablesManager
+            variables={localVariables[currentTab.environmentName] || []}
+            onVariablesChange={(vars) => {
+              setLocalVariables({
+                ...localVariables,
+                [currentTab.environmentName!]: vars,
+              });
+            }}
+          />
         </div>
       ) : currentTab ? (
         <div className="request-section">
@@ -564,6 +681,49 @@ export default function App() {
           setShowSaveRequestModal(false);
           setSaveRequestName('');
           setSaveRequestDescription('');
+        }}
+      />
+
+      <CreateWorkspaceModal
+        isOpen={showCreateWorkspaceModal}
+        onClose={() => setShowCreateWorkspaceModal(false)}
+        onCreate={handleCreateWorkspace}
+      />
+
+      <ConfirmModal
+        isOpen={showConfirmDeleteWorkspace}
+        title="Delete Workspace"
+        message={`Are you sure you want to delete this workspace? This action cannot be undone and all saved requests and variables will be lost.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDangerous={true}
+        onConfirm={confirmDeleteWorkspace}
+        onCancel={() => {
+          setShowConfirmDeleteWorkspace(false);
+          setWorkspaceToDelete('');
+        }}
+      />
+
+      <ConfirmModal
+        isOpen={showConfirmDeleteRequest}
+        title="Delete Request"
+        message={`Are you sure you want to delete the saved request "${requestToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDangerous={true}
+        onConfirm={() => {
+          if (requestToDelete && currentWorkspace) {
+            updateWorkspace({
+              ...currentWorkspace,
+              savedRequests: currentWorkspace.savedRequests.filter(r => r.id !== requestToDelete.id),
+            });
+          }
+          setShowConfirmDeleteRequest(false);
+          setRequestToDelete(null);
+        }}
+        onCancel={() => {
+          setShowConfirmDeleteRequest(false);
+          setRequestToDelete(null);
         }}
       />
     </div>
